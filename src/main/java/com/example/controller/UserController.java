@@ -1,5 +1,8 @@
 package com.example.controller;
 
+import cn.hutool.poi.excel.ExcelReader;
+import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
@@ -12,8 +15,15 @@ import com.example.service.MailService;
 import com.example.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
 import java.util.List;
 
 @RestController
@@ -105,6 +115,40 @@ public class UserController {
     }
 
 
+    @GetMapping("/export")
+    public void export(HttpServletResponse response) throws IOException {
+        List<User> list = userService.list();
+
+        ExcelWriter writer = ExcelUtil.getWriter(true);
+        writer.addHeaderAlias("userId","用户编号");
+        writer.addHeaderAlias("userName","用户名");
+        writer.addHeaderAlias("userPassword","用户密码");
+        writer.addHeaderAlias("email","邮箱");
+
+        writer.write(list,true);
+        //设置浏览器响应的格式
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8");
+        String fileName = URLEncoder.encode("用户信息", "UTF-8");
+        response.setHeader("Content-Disposition", "attachment;filename=" + fileName + ".xlsx");
+
+        ServletOutputStream out = response.getOutputStream();
+        writer.flush(out, true);
+        out.close();
+        writer.close();
+
+
+
+    }
+
+    @PostMapping("/import")
+    public String importExcel(MultipartFile file) throws IOException {
+        InputStream inputStream = file.getInputStream();
+        ExcelReader reader = ExcelUtil.getReader(inputStream);
+        List<User> list = reader.readAll(User.class);
+        userService.saveBatch(list);
+        return "true";
+
+    }
 
 //    @GetMapping("/eqlCode")
 //    public boolean eCode( String code, HttpSession httpSession){

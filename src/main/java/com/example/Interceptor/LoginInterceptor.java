@@ -41,7 +41,9 @@ public class LoginInterceptor implements HandlerInterceptor {
         }
         String userId ;
         try {
+
             userId = JWT.decode(token).getAudience().get(0);
+            System.out.println(JWT.decode(token).getAudience().get(1));
         } catch (JWTDecodeException e) {
             throw new ServiceException(Constants.CODE_400,"token验证失败,请重新登录");
         }
